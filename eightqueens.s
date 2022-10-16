@@ -4,24 +4,117 @@
         # we can place the queen in row 0 in a different column
         # by changing the first 0 below.
 
-a:      .word   0, 0, 0, 0, 0, 0, 0, 0 # word array
+a:      .word   3, 0, 0, 0, 0, 0, 0, 0 # word array
+s:	.asciz	"Number of solutions="
+buf:	.byte	'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
+		'-','-','-','-','-','-','-','-', '\n'
 
         # code
         .text
         .globl  main
 main:   
-        la      a0, a
+        la      a0, a		# put address of solution array in a0
         li      a1, 1           # number of queens already placed
-        jal	ra, solve_8queens
+        jal	ra, solve_8queens	# solve
         
-        addi	a7, x0, 1
-        ecall
+        add	s0, x0, a0	# load number of solutions into a0
+        
+        la	a0, a		# load address of a into a0
+        jal ra, print_solution	# call print_solution
+        
+        add	t3, x0, x0
+        addi	t4, x0, 8
+loop:
+	beq	t3, t4, display
+	slli	t2, t3, 2
+	la	t1, a
+	add	t2, t2, t1
+	lw	a0, 0(t2)
+	addi	a7, x0, 1
+	ecall
+	addi	a7, x0, 11
+	addi	a0, x0, ' '
+	ecall
+	addi	t3, t3, 1
+	beq	x0, x0, loop
+
+display:	
+	addi	a7, x0, 11
+	addi	a0, x0, '\n'
+	ecall
+	
+	
+	addi	a7, x0, 4
+	la	a0, s
+	ecall
+	
+	addi	a7, x0, 1
+	add	a0, x0, s0
+	ecall
+	
+	
 
 	# set a breakpoint here and check if any saved register was changed
         # exit
 exit:   addi    a7, x0, 10      
         ecall
 
+#######################
+
+print_solution:
+	addi	sp, sp, -8	# allocate space on stack for 2 words
+	sw	s0, 4(sp)	# save s0 on the stack
+	sw	ra, 0(sp)	# save ra on the stack
+	
+	add	s0, x0, a0	# save &a in s0
+	add	t0, x0, x0	# counter
+	addi	t1, x0, 8	# max counter
+	
+p_outer:
+	beq	t0, t1, print_exit
+	slli	t2, t0, 2	# multiply counter * 4
+	add	t2, s0, t2	# get addr from a (&a + i * 4)
+	lw	t3, 0(t2)	# load from a
+	
+# loop for i in 8
+# if i == t3, then print *
+# otherwise, print -
+	add	t4, x0, x0	# inner loop counter
+p_inner:
+	beq	t4, t1, end_outer	# end the inner loop
+	bne	t4, t3, blank
+	addi	a7, x0, 11	# printing ascii char
+	addi	a0, x0, '*'	# using newline
+	ecall			# call to print
+	beq	x0, x0, end_inner	# go to end_inner
+blank:
+	addi	a7, x0, 11	# printing ascii char
+	addi	a0, x0, '-'	# using newline
+	ecall			# call to print
+end_inner:
+	addi	t4, t4, 1	# increment inner loop counter
+	beq	x0, x0, p_inner	# go to top of inner loop
+	
+	
+end_outer:
+	addi	a7, x0, 11	# printing ascii char
+	addi	a0, x0, '\n'	# using newline
+	ecall			# call to print
+	addi	t0, t0, 1	# increment counter
+	beq	x0, x0, p_outer	# go back to top of loop
+	
+print_exit:
+	lw	s0, 4(sp)	# load s0 from the stack
+	lw	ra, 0(sp)	# load ra from the stack
+	addi	sp, sp, 8	# deallocate space on stack
+	jr 	ra
+	
 #######################
 
 solve_8queens:
@@ -39,17 +132,21 @@ solve_8queens:
 	
 	addi	t6, x0, 8	# max value of k is 8
 	
-	blt	s1, t6, q_loop	# if k hits eight, we are done
+	blt	s1, t6, q_loop	# if k hits eight, we are done, otherwise loop
 	addi	s2, s2, 1	# increment counter
 	add	a0, s2, x0	# set a0 to counter
 	beq	x0, x0, q_exit	# exit and return
 	
-q_loop:
+q_loop:	
+	# can't load from the stack here since it will cause 0 to be popped off the stack
 	blt	s3, t6, q_cont	# if j < 8, continue to normal loop
 	add	a0, s2, x0	# set a0 to the solution counter
-	beq	x0, x0, q_exit	# exit the function 
+	beq	x0, x0, q_exit	# exit the function
 	
 q_cont:
+	# addi	a7, x0, 1
+	# addi	a0, x0, 5
+	# ecall
 	add	a0, s0, x0	# set a0 to &a
 	add	a1, s1, x0	# set a1 to k
 	add	a2, s3, x0	# set a2 to j
@@ -64,23 +161,25 @@ q_cont:
 	add	a0, s0, x0	# save a in a0
 	addi	a1, s1, 1	# save k + 1 in a1
 	jal	ra, solve_8queens	# recursively call solve_8queens
+	# lw	s2, 8(sp)
 	add	s2, s2, a0	# add counter + result from recursive call
 	beq	s2, x0, q_el	# continue to end of loop if counter is still 0
 	add	a0, s2, x0	# set a0 to counter
 	beq	x0, x0, q_exit	# exit function
 	
 q_el:
+	# lw	s3, 4(sp)
 	addi	s3, s3, 1	# increment j
 	beq	x0, x0, q_loop	# go back to top of loop
 	
-	
 q_exit:        
-	addi	sp, sp, 20	# deallocate space on stack
+	# make call to process solution
 	lw	s0, 16(sp)	# load s0 from stack
 	lw	s1, 12(sp)	# load s1 from stack
 	lw	s2, 8(sp)	# load s2 from stack
 	lw	s3, 4(sp)	# load s3 from stack
 	lw	ra, 0(sp)	# preserve ra from stack
+	addi	sp, sp, 20	# deallocate space on stack
 	jr	ra		# return from function
         
 #######################
@@ -153,8 +252,3 @@ iv_exit:
 	lw	ra, 0(sp)	# load ra from stack
 	addi	sp, sp, 24	# deallocate space on stack
 	jr 	ra		# return from function
-	
-#######################
-
-process_solution:
-	jr 	ra
