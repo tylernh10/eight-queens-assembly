@@ -1,19 +1,10 @@
 .data
 
-        # the numbers are the location of the queen in each row.
-        # we can place the queen in row 0 in a different column
-        # by changing the first 0 below.
+        # the numbers of a are the location of the queen in each row.
+        # modify the first 0 to change the placement of the queen in the first row
 
-a:      .word   3, 0, 0, 0, 0, 0, 0, 0 # word array
+a:      .word   7, 0, 0, 0, 0, 0, 0, 0
 s:	.asciz	"Number of solutions="
-buf:	.byte	'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
-		'-','-','-','-','-','-','-','-', '\n'
 
         # code
         .text
@@ -26,12 +17,14 @@ main:
         add	s0, x0, a0	# load number of solutions into a0
         
         la	a0, a		# load address of a into a0
-        jal ra, print_solution	# call print_solution
+        jal ra, print_solution	# call print_solution (prints visual representation of board)
         
-        add	t3, x0, x0
-        addi	t4, x0, 8
+        add	t3, x0, x0	# counter
+        addi	t4, x0, 8	# max of counter
+
+# the loop below displays the solutions of queen placement for each row which are populated in a
 loop:
-	beq	t3, t4, display
+	beq	t3, t4, display	# when loop is over, go to display
 	slli	t2, t3, 2
 	la	t1, a
 	add	t2, t2, t1
@@ -45,15 +38,18 @@ loop:
 	beq	x0, x0, loop
 
 display:	
+	# print a newline
 	addi	a7, x0, 11
 	addi	a0, x0, '\n'
 	ecall
 	
 	
+	# print string
 	addi	a7, x0, 4
 	la	a0, s
 	ecall
 	
+	# print number of solutions
 	addi	a7, x0, 1
 	add	a0, x0, s0
 	ecall
@@ -67,6 +63,7 @@ exit:   addi    a7, x0, 10
 
 #######################
 
+# function to print visual representation of board
 print_solution:
 	addi	sp, sp, -8	# allocate space on stack for 2 words
 	sw	s0, 4(sp)	# save s0 on the stack
@@ -82,15 +79,12 @@ p_outer:
 	add	t2, s0, t2	# get addr from a (&a + i * 4)
 	lw	t3, 0(t2)	# load from a
 	
-# loop for i in 8
-# if i == t3, then print *
-# otherwise, print -
 	add	t4, x0, x0	# inner loop counter
 p_inner:
 	beq	t4, t1, end_outer	# end the inner loop
 	bne	t4, t3, blank
 	addi	a7, x0, 11	# printing ascii char
-	addi	a0, x0, '*'	# using newline
+	addi	a0, x0, 'Q'	# using newline
 	ecall			# call to print
 	beq	x0, x0, end_inner	# go to end_inner
 blank:
@@ -98,6 +92,9 @@ blank:
 	addi	a0, x0, '-'	# using newline
 	ecall			# call to print
 end_inner:
+	addi	a7, x0, 11	# printing ascii char
+	addi	a0, x0, ' '	# space
+	ecall
 	addi	t4, t4, 1	# increment inner loop counter
 	beq	x0, x0, p_inner	# go to top of inner loop
 	
@@ -117,6 +114,7 @@ print_exit:
 	
 #######################
 
+# solver function
 solve_8queens:
 	addi	sp, sp, -20	# allocate space for 5 words on the stack
 	sw	s0, 16(sp)	# preserve s0 on the stack
@@ -138,15 +136,11 @@ solve_8queens:
 	beq	x0, x0, q_exit	# exit and return
 	
 q_loop:	
-	# can't load from the stack here since it will cause 0 to be popped off the stack
 	blt	s3, t6, q_cont	# if j < 8, continue to normal loop
 	add	a0, s2, x0	# set a0 to the solution counter
 	beq	x0, x0, q_exit	# exit the function
 	
 q_cont:
-	# addi	a7, x0, 1
-	# addi	a0, x0, 5
-	# ecall
 	add	a0, s0, x0	# set a0 to &a
 	add	a1, s1, x0	# set a1 to k
 	add	a2, s3, x0	# set a2 to j
@@ -168,12 +162,10 @@ q_cont:
 	beq	x0, x0, q_exit	# exit function
 	
 q_el:
-	# lw	s3, 4(sp)
 	addi	s3, s3, 1	# increment j
 	beq	x0, x0, q_loop	# go back to top of loop
 	
 q_exit:        
-	# make call to process solution
 	lw	s0, 16(sp)	# load s0 from stack
 	lw	s1, 12(sp)	# load s1 from stack
 	lw	s2, 8(sp)	# load s2 from stack
@@ -184,6 +176,7 @@ q_exit:
         
 #######################
 
+# calculates the absolute value of the difference between two numbers
 difference:
 	addi 	sp, sp, -4 	# allocate space for 1 word
 	sw 	ra, 0(sp)	# preserve ra on stack
@@ -198,6 +191,7 @@ d_exit:
 	
 #######################
 
+# checks if a placement of a queen is valid based on the placement of queens in rows above it
 is_valid:
 	addi 	sp, sp, -24	# allocate space for 6 words on stack
 	sw	s0, 20(sp)	# preserve s0 on stack
