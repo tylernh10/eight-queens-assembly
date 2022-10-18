@@ -3,7 +3,7 @@
         # the numbers of a are the location of the queen in each row.
         # modify the first 0 to change the placement of the queen in the first row
 
-a:      .word   0, 0, 0, 0, 0, 0, 0, 0
+a:      .word   8, 0, 0, 0, 0, 0, 0, 0
 s:	.asciz	"Number of solutions="
 error:	.asciz	"The position is not correct."
 
