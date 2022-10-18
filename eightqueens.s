@@ -3,21 +3,29 @@
         # the numbers of a are the location of the queen in each row.
         # modify the first 0 to change the placement of the queen in the first row
 
-a:      .word   7, 0, 0, 0, 0, 0, 0, 0
+a:      .word   0, 0, 0, 0, 0, 0, 0, 0
 s:	.asciz	"Number of solutions="
+error:	.asciz	"The position is not correct."
 
         # code
         .text
         .globl  main
 main:   
+        addi 	t0, x0, 8	# used for checking if first queen is out of range
         la      a0, a		# put address of solution array in a0
         li      a1, 1           # number of queens already placed
+        
+        lw 	t1, 0(a0)	# finding first value in a
+        
+        blt	t1, x0, out_of_range	# if first val of a is less than 0, out of range
+        bge	t1, t0, out_of_range	# if first val of a is greater than or equal to 8, out of range
+        
         jal	ra, solve_8queens	# solve
         
         add	s0, x0, a0	# load number of solutions into a0
         
         la	a0, a		# load address of a into a0
-        jal ra, print_solution	# call print_solution (prints visual representation of board)
+        jal 	ra, print_solution	# call print_solution (prints visual representation of board)
         
         add	t3, x0, x0	# counter
         addi	t4, x0, 8	# max of counter
@@ -54,7 +62,31 @@ display:
 	add	a0, x0, s0
 	ecall
 	
+	beq 	x0, x0, exit	# go to exit
 	
+out_of_range:
+	addi	t0, x0, 8	# counter max
+	addi	t1, x0, 0	# counter
+error_loop:
+	beq	t1, t0, end_error	# exit loop
+	addi	a7, x0, 1	# printing integer
+	add	a0, x0, x0	# loading 0 into a0
+	ecall			# make call
+	addi	a7, x0, 11	# printing ascii char
+	addi	a0, x0, ' '	# space
+	ecall			# make call
+	addi	t1, t1, 1	# increment counter
+	beq	x0, x0, error_loop	# go to top of loop
+
+end_error:
+	# print error
+	addi	a7, x0, 11	# printing an ascii character
+	addi	a0, x0, '\n'	# newline
+	ecall			# make call
+	
+	addi	a7, x0, 4
+	la	a0, error
+	ecall
 
 	# set a breakpoint here and check if any saved register was changed
         # exit
@@ -84,7 +116,7 @@ p_inner:
 	beq	t4, t1, end_outer	# end the inner loop
 	bne	t4, t3, blank
 	addi	a7, x0, 11	# printing ascii char
-	addi	a0, x0, 'Q'	# using newline
+	addi	a0, x0, '*'	# using newline
 	ecall			# call to print
 	beq	x0, x0, end_inner	# go to end_inner
 blank:
@@ -94,7 +126,7 @@ blank:
 end_inner:
 	addi	a7, x0, 11	# printing ascii char
 	addi	a0, x0, ' '	# space
-	ecall
+	# ecall
 	addi	t4, t4, 1	# increment inner loop counter
 	beq	x0, x0, p_inner	# go to top of inner loop
 	
