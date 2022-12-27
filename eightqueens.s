@@ -1,3 +1,5 @@
+# Copyright Tyler Hinrichs 2022
+
 .data
 
         # the numbers of a are the location of the queen in each row.
